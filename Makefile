@@ -4,7 +4,7 @@ DEVICE=STM32F051
 
 COMMON = -mcpu=$(CPU) -mthumb
 
-CFLAGS += $(COMMON) -Wall -Werror -std=gnu99 -O3 -D$(DEVICE)
+CFLAGS += $(COMMON) -Wall -Werror -std=gnu99 -D$(DEVICE)
 CFLAGS += -ffunction-sections -fdata-sections -mlittle-endian -march=armv6-m
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -Istm32f0 -Isrc

@@ -1,22 +1,40 @@
 #include "stm32f0xx.h"
 
+#include "gpio.h"
+#include "lcd.h"
+#include "reset.h"
+#include "step.h"
+
 #include <stdbool.h>
+#include <stdio.h>
 
 
 void SysTick_Handler() {
-  GPIOC->ODR ^= GPIO_ODR_8;
-  GPIOC->ODR ^= GPIO_ODR_9;
+  GPIO_TGL_PIN(C, 8);
+  GPIO_TGL_PIN(C, 9);
+
+  reset_callback();
+
+  char buf[21];
+  for (int i = 0; i < 3; i++) {
+    sprintf(buf, "% 19ld%c", steps_get(i), "XYZ"[i]);
+    lcd_text(buf, 0, i + 1);
+  }
 }
 
 
 void init() {
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;   // Enable GPIOC peripheral clock
 
-  GPIOC->MODER |= GPIO_MODER_MODER8_0; // Output
-  GPIOC->MODER |= GPIO_MODER_MODER9_0; // Output
+  GPIO_SET_MODER(C, 8, 1); // Output
+  GPIO_SET_MODER(C, 9, 1); // Output
 
-  GPIOC->BSRR = GPIO_BSRR_BR_8; // Reset
-  GPIOC->BSRR = GPIO_BSRR_BS_9; // Set
+  GPIO_CLR_PIN(C, 8);
+  GPIO_SET_PIN(C, 9);
+
+  lcd_init(0x27, 20, 4);
+  reset_init();
+  step_init();
 }
 
 

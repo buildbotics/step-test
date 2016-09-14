@@ -20,7 +20,7 @@ SECTIONS {
     . = ALIGN(4);
         KEEP(*(.isr_vector))            /* Startup code */
     . = ALIGN(4);
-    } >FLASH
+    } > FLASH
 
     /* the program code is stored in the .text section, which goes to Flash */
     .text : {
@@ -43,7 +43,7 @@ SECTIONS {
         /* This is used by the startup in order to initialize the .data
            section */
         _sidata = _etext;
-    } >FLASH
+    } > FLASH
 
     /* This is the initialized data section
     The program executes knowing that the data is in the RAM
@@ -63,7 +63,7 @@ SECTIONS {
         . = ALIGN(4);
         /* This is used by the startup to initialize the .data secion */
         _edata = . ;
-    } >RAM
+    } > RAM
 
     /* This is the uninitialized data section */
     .bss : {
@@ -78,8 +78,8 @@ SECTIONS {
 
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .bss secion */
-     _ebss = . ;
-    } >RAM
+        _ebss = . ;
+    } > RAM
 
     PROVIDE (end = _ebss);
     PROVIDE (_end = _ebss);
@@ -94,6 +94,8 @@ SECTIONS {
      libc.a (*)
      libm.a (*)
      libgcc.a (*)
+        *(.ARM.exidx*)
+        *(.gnu.linkonce.armexidx.*)
      }
 
     /* Stabs debugging sections.  */
