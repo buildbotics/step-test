@@ -4,25 +4,49 @@
 #include "lcd.h"
 
 #include <stdio.h>
+#include <string.h>
 
-enum {
-  STEP_PIN,
-  ENABLE_PIN,
-  DIR_PIN,
+
+typedef struct {
+  int32_t count;
+  int32_t last;
+  float velocity;
+  float mm_per_step;
+
+  const struct {
+    uint8_t step;
+    uint8_t enable;
+    uint8_t dir;
+  } pins;
+} stepper_t;
+
+
+#define MM_PER_STEP (6.35 * 1.8 / 360)
+
+static stepper_t steps[3] = {
+  {
+    .mm_per_step = MM_PER_STEP,
+    .pins = {4, 9, 12},
+  }, {
+    .mm_per_step = MM_PER_STEP,
+    .pins = {5, 10, 13},
+  }, {
+    .mm_per_step = MM_PER_STEP,
+    .pins = {8, 11, 14},
+  },
 };
 
-static int32_t steps[3] = {0};
-static const uint8_t pins[] = {4, 5, 8, 9, 10, 11, 12, 13, 14};
 static const uint16_t mask = 0x130;
 
-#define READ_PIN(N, TYPE) (GPIOB->IDR & (1 << pins[TYPE * 3 + N]))
+#define PIN_MASK(N, TYPE) (1 << steps[N].pins.TYPE)
+#define READ_PIN(N, TYPE) (GPIOB->IDR & PIN_MASK(N, TYPE))
 
 
 void EXTI4_15_IRQHandler() {
   // Count steps
   for (int i = 0; i < 3; i++)
-    if (EXTI->PR & (1 << pins[i]) && !READ_PIN(i, ENABLE_PIN))
-      steps[i] += READ_PIN(i, DIR_PIN) ? -1 : 1;
+    if (EXTI->PR & PIN_MASK(i, step) && !READ_PIN(i, enable))
+      steps[i].count += READ_PIN(i, dir) ? -1 : 1;
 
   EXTI->PR = mask; // Clear interrupts
 }
@@ -33,17 +57,20 @@ void step_init() {
   RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; // Enable SYSCFG peripheral clock
   RCC->AHBENR |= RCC_AHBENR_GPIOBEN;    // Enable GPIOB peripheral clock
 
-  for (int i = 0; i < 9; i++) {
-    uint8_t pin = pins[i];
+  for (int i = 0; i < 3; i++) {
+    GPIO_SET_MODER(B, steps[i].pins.step,   0); // Input
+    GPIO_SET_MODER(B, steps[i].pins.enable, 0); // Input
+    GPIO_SET_MODER(B, steps[i].pins.dir,    0); // Input
 
-    GPIO_SET_MODER(B, pin, 0); // Input
-    GPIO_SET_PUPDR(B, pin, 1); // Pull-up
+    GPIO_SET_PUPDR(B, steps[i].pins.step,   1); // Pull-up
+    GPIO_SET_PUPDR(B, steps[i].pins.enable, 1); // Pull-up
+    GPIO_SET_PUPDR(B, steps[i].pins.dir,    1); // Pull-up
 
     // Interrupt EXTI source mapped to port B pins
-    if (i < 3)
-      SYSCFG->EXTICR[pin >> 2] =
-        (SYSCFG->EXTICR[pin >> 2] & ~(0xf << (4 * (pin & 3)))) |
-        (1 << (4 * (pin & 3)));
+    uint8_t pin = steps[i].pins.step;
+    SYSCFG->EXTICR[pin >> 2] =
+      (SYSCFG->EXTICR[pin >> 2] & ~(0xf << (4 * (pin & 3)))) |
+      (1 << (4 * (pin & 3)));
   }
 
   EXTI->IMR |= mask;  // Enable mask
@@ -55,5 +82,20 @@ void step_init() {
 }
 
 
-int32_t steps_get(unsigned i) {return steps[i];}
-void steps_set(unsigned i, int32_t x) {steps[i] = x;}
+int32_t step_get_count(unsigned i) {return steps[i].count;}
+float step_get_velocity(unsigned i) {return steps[i].velocity;}
+
+
+void step_reset() {
+  for (int i = 0; i < 3; i++)
+    steps[i].count = steps[i].last = steps[i].velocity = 0;
+}
+
+
+void step_callback() {
+  for (int i = 0; i < 3; i++) {
+    int32_t count = steps[i].count;
+    steps[i].velocity = (steps[i].last - count) * steps[i].mm_per_step * 100;
+    steps[i].last = count;
+  }
+}

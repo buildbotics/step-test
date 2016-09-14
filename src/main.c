@@ -10,15 +10,23 @@
 
 
 void SysTick_Handler() {
-  GPIO_TGL_PIN(C, 8);
-  GPIO_TGL_PIN(C, 9);
+  step_callback();
 
-  reset_callback();
+  static int quarter = 0;
+  if (++quarter == 25) {
+    quarter = 0;
 
-  char buf[21];
-  for (int i = 0; i < 3; i++) {
-    sprintf(buf, "% 19ld%c", steps_get(i), "XYZ"[i]);
-    lcd_text(buf, 0, i + 1);
+    GPIO_TGL_PIN(C, 8);
+    GPIO_TGL_PIN(C, 9);
+
+    reset_callback();
+
+    char buf[21];
+    for (int i = 0; i < 3; i++) {
+      sprintf(buf, "%9.4f|% 8ld|%c", step_get_velocity(i), step_get_count(i),
+              "XYZ"[i]);
+      lcd_text(buf, 0, i + 1);
+    }
   }
 }
 
@@ -41,7 +49,7 @@ void init() {
 int main() {
   init();
 
-  SysTick_Config(SystemCoreClock / 4);
+  SysTick_Config(SystemCoreClock / 100);
 
   while (true) continue;
 }

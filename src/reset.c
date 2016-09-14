@@ -34,10 +34,9 @@ void reset_init() {
 
 
 void reset() {
-  for (int i = 0; i < 3; i++) steps_set(i, 0);
-
+  step_reset();
   lcd_reset();
-  lcd_text("Stepper Counter", 0, 0);
+  lcd_text("-Vel-mm/s+---Steps+-", 0, 0);
 }
 
 

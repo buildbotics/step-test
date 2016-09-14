@@ -22,6 +22,12 @@ SECTIONS {
     . = ALIGN(4);
     } > FLASH
 
+    .ARM.exidx : {
+        __exidx_start = .;
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+        __exidx_end = .;
+    } > FLASH
+
     /* the program code is stored in the .text section, which goes to Flash */
     .text : {
         . = ALIGN(4);
@@ -40,19 +46,18 @@ SECTIONS {
 
         . = ALIGN(4);
         _etext = .;
-        /* This is used by the startup in order to initialize the .data
-           section */
+        /* This is used by the startup to initialize the .data section */
         _sidata = _etext;
     } > FLASH
 
     /* This is the initialized data section
-    The program executes knowing that the data is in the RAM
-    but the loader puts the initial values in the FLASH (inidata).
-    It is one task of the startup to copy the initial values from FLASH to
-    RAM. */
+       The program executes knowing that the data is in the RAM
+       but the loader puts the initial values in the FLASH (inidata).
+       It is one task of the startup to copy the initial values from FLASH to
+       RAM. */
     .data  : AT (_sidata) {
         . = ALIGN(4);
-        /* This is used by the startup to initialize the .data secion */
+        /* This is used by the startup to initialize the .data section */
         _sdata = . ;
         _data = . ;
 
@@ -61,14 +66,14 @@ SECTIONS {
         *(.RAMtext)
 
         . = ALIGN(4);
-        /* This is used by the startup to initialize the .data secion */
+        /* This is used by the startup to initialize the .data section */
         _edata = . ;
     } > RAM
 
     /* This is the uninitialized data section */
     .bss : {
         . = ALIGN(4);
-        /* This is used by the startup to initialize the .bss secion */
+        /* This is used by the startup to initialize the .bss section */
         _sbss = .;
         _bss = .;
 
@@ -77,15 +82,12 @@ SECTIONS {
         *(COMMON)
 
         . = ALIGN(4);
-        /* This is used by the startup in order to initialize the .bss secion */
+        /* This is used by the startup to initialize the .bss section */
         _ebss = . ;
     } > RAM
 
     PROVIDE (end = _ebss);
     PROVIDE (_end = _ebss);
-
-    __exidx_start = .;
-    __exidx_end = .;
 
     /* after that it's only debugging information. */
 
@@ -94,8 +96,6 @@ SECTIONS {
      libc.a (*)
      libm.a (*)
      libgcc.a (*)
-        *(.ARM.exidx*)
-        *(.gnu.linkonce.armexidx.*)
      }
 
     /* Stabs debugging sections.  */
