@@ -1,10 +1,12 @@
-/*
- * newlib_stubs.c
+/* Newlib stubs
  *
- *  Created on: 2 Nov 2010
- *      Author: nanoage.co.uk
+ * Original by nanoage.co.uk, Nov. 2010
+ * Updated Joseph Coffland, Cauldron Development LLC Sept. 2016
  */
+
 #include <errno.h>
+#include <stdio.h>
+
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/unistd.h>
@@ -17,156 +19,88 @@
 #endif
 
 
-#undef errno
-extern int errno;
-
+// Environment
 char *__env[1] = {0};
 char **environ = __env;
 
 
-int _write(int file, char *ptr, int len);
-
-
-void _exit(int status) {
-  while (1) continue;
-}
-
-
-int _close(int file) {return -1;}
-
-
-int _execve(char *name, char **argv, char **env) {
-  errno = ENOMEM;
-  return -1;
-}
-
-
-int _fork() {
-  errno = EAGAIN;
-  return -1;
-}
-
-
-int _fstat(int file, struct stat *st) {
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-
-
+// Process
+void _exit(int status) {while (1) continue;}
+int _execve(char *name, char **argv, char **env) {errno = ENOMEM; return -1;}
+int _fork() {errno = EAGAIN; return -1;}
 int _getpid() {return 1;}
+int _kill(int pid, int sig) {errno = EINVAL; return (-1);}
+int _wait(int *status) {errno = ECHILD; return -1;}
+clock_t _times(struct tms *buf) {return -1;}
 
 
-int _isatty(int file) {
-  switch (file){
+// File
+int _close(int fd) {return -1;}
+int _stat(const char *path, struct stat *st) {st->st_mode = S_IFCHR; return 0;}
+int _fstat(int fd, struct stat *st) {st->st_mode = S_IFCHR; return 0;}
+int _link(char *old, char *new) {errno = EMLINK; return -1;}
+int _lseek(int fd, int ptr, int dir) {return 0;}
+int _unlink(char *name) {errno = ENOENT; return -1;}
+
+
+int _isatty(int fd) {
+  switch (fd) {
   case STDOUT_FILENO:
   case STDERR_FILENO:
   case STDIN_FILENO:
     return 1;
-  default:
-    errno = EBADF;
-    return 0;
+
+  default: errno = EBADF; return 0;
   }
 }
 
 
-int _kill(int pid, int sig) {
-  errno = EINVAL;
-  return (-1);
-}
+int _read(int fd, char *ptr, int len) {
+  switch (fd) {
+  case STDIN_FILENO: {
+    int bytes;
 
-
-int _link(char *old, char *new) {
-  errno = EMLINK;
-  return -1;
-}
-
-
-int _lseek(int file, int ptr, int dir) {return 0;}
-
-
-caddr_t _sbrk(int incr) {
-  extern char _ebss; // Defined by the linker
-  static char *heap_end;
-  char *prev_heap_end;
-
-  if (!heap_end) heap_end = &_ebss;
-  prev_heap_end = heap_end;
-
-  char * stack = (char*) __get_MSP();
-  if (heap_end + incr >  stack) {
-    _write (STDERR_FILENO, "Heap and stack collision\n", 25);
-    errno = ENOMEM;
-    return  (caddr_t) -1;
-  }
-
-  heap_end += incr;
-  return (caddr_t) prev_heap_end;
-}
-
-
-int _read(int file, char *ptr, int len) {
-  int n;
-  int num = 0;
-  switch (file) {
-  case STDIN_FILENO:
-    for (n = 0; n < len; n++) {
-      while ((USART->ISR & USART_FLAG_RXNE) == (uint16_t)RESET) {}
-      char c = (char)(USART->RDR & (uint16_t)0x01FF);
-      *ptr++ = c;
-      num++;
+    for (bytes = 0; bytes < len; bytes++) {
+      while ((USART->ISR & USART_FLAG_RXNE) == RESET) continue;
+      *ptr++ = USART->RDR;
     }
-    break;
 
-  default:
-    errno = EBADF;
-    return -1;
+    return bytes;
   }
 
-  return num;
+  default: errno = EBADF; return -1;
+  }
 }
 
 
-int _stat(const char *filepath, struct stat *st) {
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-
-
-clock_t _times(struct tms *buf) {return -1;}
-
-
-int _unlink(char *name) {
-  errno = ENOENT;
-  return -1;
-}
-
-
-int _wait(int *status) {
-  errno = ECHILD;
-  return -1;
-}
-
-
-int _write(int file, char *ptr, int len) {
-  switch (file) {
+int _write(int fd, char *ptr, int len) {
+  switch (fd) {
   case STDOUT_FILENO:
-    for (int n = 0; n < len; n++) {
-      while ((USART->ISR & USART_FLAG_TC) == (uint16_t)RESET) {}
-      USART->TDR = (*ptr++ & (uint16_t)0x01FF);
-    }
-    break;
-
   case STDERR_FILENO:
-    for (int n = 0; n < len; n++) {
-      while ((USART->ISR & USART_FLAG_TC) == (uint16_t)RESET) {}
-      USART->TDR = (*ptr++ & (uint16_t)0x01FF);
+    for (int i = 0; i < len; i++) {
+      while ((USART->ISR & USART_FLAG_TC) == RESET) continue;
+      USART->TDR = *ptr++ & 0x01FF;
     }
-    break;
+    return len;
 
-  default:
-    errno = EBADF;
-    return -1;
+  default: errno = EBADF; return -1;
+  }
+}
+
+
+caddr_t _sbrk(int len) {
+  extern char _ebss; // Defined by the linker
+  static char *heap_end = &_ebss;
+  char *prev_heap_end = heap_end;
+  char *stack = (char *)__get_MSP();
+
+  if (stack < heap_end + len) {
+    errno = ENOMEM;
+    perror("Heap and stack collision\n");
+    return (caddr_t)-1;
   }
 
-  return len;
+  heap_end += len;
+
+  return (caddr_t)prev_heap_end;
 }

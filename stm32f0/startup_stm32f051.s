@@ -1,38 +1,35 @@
-/**
-  ******************************************************************************
-  * @file      startup_stm32f051.s
-  * @author    MCD Application Team
-  * @version   V1.5.0
-  * @date      05-December-2014
-  * @brief     STM32F051 Devices vector table for Atollic toolchain.
-  *            This module performs:
-  *               - Set the initial SP
-  *               - Set the initial PC == Reset_Handler,
-  *               - Set the vector table entries with the exceptions ISR address
-  *               - Configure the system clock
-  *               - Branches to main in the C library (which eventually
-  *                 calls main()).
-  *            After Reset the Cortex-M0 processor is in Thread mode,
-  *            priority is Privileged, and the Stack is set to Main.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */
+/*******************************************************************************
+ * @file      startup_stm32f051.s
+ * @author    MCD Application Team
+ * @version   V1.5.0
+ * @date      05-December-2014
+ * @brief     STM32F051 Devices vector table for Atollic toolchain.
+ *            This module performs:
+ *               - Set the initial SP
+ *               - Set the initial PC == Reset_Handler,
+ *               - Set the vector table entries with the exceptions ISR address
+ *               - Configure the system clock
+ *               - Branches to main in the C library (which eventually
+ *                 calls main()).
+ *            After Reset the Cortex-M0 processor is in Thread mode,
+ *            priority is Privileged, and the Stack is set to Main.
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
+ *
+ * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
+ * You may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *        http://www.st.com/software_license_agreement_liberty_v2
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
   .syntax unified
   .cpu cortex-m0
@@ -43,7 +40,7 @@
 .global Default_Handler
 
 /* start address for the initialization values of the .data section.
-defined in linker script */
+   defined in linker script */
 .word _sidata
 /* start address for the .data section. defined in linker script */
 .word _sdata
@@ -139,13 +136,11 @@ Infinite_Loop:
   b Infinite_Loop
   .size Default_Handler, .-Default_Handler
 /******************************************************************************
-*
 * The minimal vector table for a Cortex M0.  Note that the proper constructs
 * must be placed on this to ensure that it ends up at physical address
 * 0x0000.0000.
-*
 ******************************************************************************/
-   .section .isr_vector,"a",%progbits
+   .section .isr_vector, "a", %progbits
   .type g_pfnVectors, %object
   .size g_pfnVectors, .-g_pfnVectors
 
@@ -203,13 +198,10 @@ g_pfnVectors:
   .word 0
 
 /*******************************************************************************
-*
 * Provide weak aliases for each Exception handler to the Default_Handler.
 * As they are weak aliases, any function with the same name will override
 * this definition.
-*
 *******************************************************************************/
-
   .weak NMI_Handler
   .thumb_set NMI_Handler,Default_Handler
 
