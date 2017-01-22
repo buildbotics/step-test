@@ -21,7 +21,7 @@ typedef struct {
 } stepper_t;
 
 
-#define MM_PER_STEP (6.35 * 1.8 / 360)
+#define MM_PER_STEP (6.35 * 1.8 / 360 / 32)
 
 static stepper_t steps[3] = {
   {
@@ -43,12 +43,13 @@ static const uint16_t mask = 0x130;
 
 
 void EXTI4_15_IRQHandler() {
+  const uint16_t pr = EXTI->PR;
+  EXTI->PR = (pr & mask); // Only clear interrupts which were read
+
   // Count steps
   for (int i = 0; i < 3; i++)
-    if (EXTI->PR & PIN_MASK(i, step) && !READ_PIN(i, enable))
+    if (pr & PIN_MASK(i, step) && READ_PIN(i, enable))
       steps[i].count += READ_PIN(i, dir) ? -1 : 1;
-
-  EXTI->PR = mask; // Clear interrupts
 }
 
 
@@ -75,7 +76,7 @@ void step_init() {
 
   EXTI->IMR |= mask;  // Enable mask
   EXTI->RTSR |= mask; // Rising edge
-  EXTI->FTSR |= mask; // Falling edge
+  //EXTI->FTSR |= mask; // Falling edge
 
   NVIC_EnableIRQ(EXTI4_15_IRQn);
   NVIC_SetPriority(EXTI4_15_IRQn, 0); // Hi
@@ -94,8 +95,11 @@ void step_reset() {
 
 void step_callback() {
   for (int i = 0; i < 3; i++) {
+    __disable_irq();
     int32_t count = steps[i].count;
-    steps[i].velocity = (steps[i].last - count) * steps[i].mm_per_step * 100;
+    __enable_irq();
+
+    steps[i].velocity = (count - steps[i].last) * MM_PER_STEP / 0.01 * 60;
     steps[i].last = count;
   }
 }

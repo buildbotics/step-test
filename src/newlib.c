@@ -4,19 +4,17 @@
  * Updated Joseph Coffland, Cauldron Development LLC Sept. 2016
  */
 
+#include "usart.h"
+
+#include "stm32f0xx.h"
+
 #include <errno.h>
 #include <stdio.h>
 
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/unistd.h>
-
-#include "stm32f0xx_usart.h"
-
-
-#ifndef USART
-#define USART USART1
-#endif
 
 
 // Environment
@@ -41,6 +39,7 @@ int _fstat(int fd, struct stat *st) {st->st_mode = S_IFCHR; return 0;}
 int _link(char *old, char *new) {errno = EMLINK; return -1;}
 int _lseek(int fd, int ptr, int dir) {return 0;}
 int _unlink(char *name) {errno = ENOENT; return -1;}
+void _sync() {}
 
 
 int _isatty(int fd) {
@@ -57,17 +56,7 @@ int _isatty(int fd) {
 
 int _read(int fd, char *ptr, int len) {
   switch (fd) {
-  case STDIN_FILENO: {
-    int bytes;
-
-    for (bytes = 0; bytes < len; bytes++) {
-      while ((USART->ISR & USART_FLAG_RXNE) == RESET) continue;
-      *ptr++ = USART->RDR;
-    }
-
-    return bytes;
-  }
-
+  case STDIN_FILENO: return usart_read(ptr, len);
   default: errno = EBADF; return -1;
   }
 }
@@ -75,14 +64,7 @@ int _read(int fd, char *ptr, int len) {
 
 int _write(int fd, char *ptr, int len) {
   switch (fd) {
-  case STDOUT_FILENO:
-  case STDERR_FILENO:
-    for (int i = 0; i < len; i++) {
-      while ((USART->ISR & USART_FLAG_TC) == RESET) continue;
-      USART->TDR = *ptr++ & 0x01FF;
-    }
-    return len;
-
+  case STDOUT_FILENO: case STDERR_FILENO: return usart_write(ptr, len);
   default: errno = EBADF; return -1;
   }
 }
@@ -103,4 +85,9 @@ caddr_t _sbrk(int len) {
   heap_end += len;
 
   return (caddr_t)prev_heap_end;
+}
+
+
+int _gettimeofday(struct timeval *tv, struct timezone *t) {
+  return 0;
 }

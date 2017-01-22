@@ -21,8 +21,8 @@ void lcd_init(uint8_t addr, uint8_t width, uint8_t height) {
   lcd.height = height;
 
   // Clocks
-  RCC->APB1ENR |= RCC_APB1ENR_I2C1EN;   // Enable I2C1 peripheral clock
-  RCC->AHBENR |= RCC_AHBENR_GPIOBEN;    // Enable GPIOB peripheral clock
+  RCC->APB1ENR |= RCC_APB1ENR_I2C1EN; // Enable I2C1 peripheral clock
+  RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  // Enable GPIOB peripheral clock
 
   // GPIO
   GPIO_SET_AFRL(B, 6, 1);    // AF1
