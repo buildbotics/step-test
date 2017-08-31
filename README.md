@@ -40,6 +40,7 @@ View the real-time velocity plot by running:
 * On board green & blue LEDs alternate to indicate device is running.
 * Pin out of Acroname Brainstem is:
 
+```
        ||                   v-- Host LED
        ||-+
      +-||  |--------------------+
@@ -50,3 +51,4 @@ View the real-time velocity plot by running:
      +-||  |--------------------+
        ||-+
        ||                   ^-- Power LED
+```
